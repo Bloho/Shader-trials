@@ -1,5 +1,44 @@
 # Minecraft acceptance test
 
+## v0.3 lighting and contrast — test this version first
+
+Install **BlohoShaders-lighting-v0.3.zip** separately and start with **Balanced**.
+Switch to **Vivid** if you want more punch; **Atmosphere** restores v0.2 settings.
+
+1. **Sun shadows:** stand beside a tree, wall, fence, and roof at noon and sunset.
+   Shadows should follow the sun, leaf texture holes should remain visible, and
+   moving mobs should cast shadows. Look for stripes on surfaces (shadow acne),
+   detached shadows, or shadows that move incorrectly with the camera. Check
+   the transition near the configured shadow distance, initially 96 blocks.
+2. **Night/rain:** moonlight should be cooler and local lights warmer. Rain should
+   reduce direct lighting. Caves should retain the engine light levels and should
+   not receive bright sunlight through walls. Check Overworld, Nether, and End;
+   the latter two should have no Overworld shadow-map artifacts.
+3. **Emission and bloom:** compare lava, glowstone, sea lanterns, shroomlights, and
+   a redstone lamp switched on/off. Look for colored halos and retained bright
+   texture detail. Check white blocks too: this is highlight bloom, not exclusively
+   an emissive mask. It should not turn the whole image into a bright fog.
+4. **Contrast/color:** compare Baseline, Atmosphere, Balanced, and Vivid. Check
+   white clouds, snow, dark wood, grass, and a torch-lit cave. Adjust exposure,
+   contrast, and saturation individually. Black texture details should stay
+   readable, and bright orange lava should not simply clip to white.
+5. **Water:** move around water at low viewing angles in daylight and at night.
+   Highlights should animate gently and keep the underlying transparency. This
+   version reflects a sky-color approximation; it does not reflect buildings.
+6. **Hand and overlays:** check both hands, enchanted tools, damage tint, eye
+   glow, and block-breaking overlays. Held objects do not receive the world
+   shadow map, avoiding a screen-space hand projection mismatch.
+7. **Options/reload/performance:** toggle Lighting, Shadows, Grading, and Water
+   Highlights independently. Test 1024/2048 shadow resolution; 4096 is available
+   but costs more GPU time and memory. Reload and change dimensions. Compare FPS
+   with the v0.2 pack at identical resolution/render distance.
+
+Send the first compiler/OpenGL error and full `logs/latest.log` if anything fails,
+plus a screenshot, exact loader/Minecraft versions, selected preset, and FPS.
+Shadow quality/bias and the final art direction still require this in-game check.
+
+## Earlier atmosphere checks (still useful as regressions)
+
 ## v0.2 bloom, fog, and clouds
 
 The user confirmed the first baseline renders normally. Install
@@ -42,7 +81,7 @@ the new effects pass this check.
 
 ## Setup
 
-1. Copy `dist/BlohoShaders-atmosphere-v0.2.zip` into the **active instance's**
+1. Copy `dist/BlohoShaders-lighting-v0.3.zip` into the **active instance's**
    `shaderpacks` directory, then select it in the shader menu.
 2. Use the default resource pack first. Record Minecraft, Iris + Sodium or
    OptiFine versions, GPU, and operating system. Test the loader you normally use;

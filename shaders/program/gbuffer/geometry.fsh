@@ -2,6 +2,9 @@
 #if BLOHO_FOG == 1 && defined BLOHO_FOGGED
 #include "/lib/fog.glsl"
 #endif
+#if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
+#include "/lib/lighting.glsl"
+#endif
 
 #ifdef BLOHO_TEXTURED
 uniform sampler2D gtexture;
@@ -32,6 +35,9 @@ void main() {
     // With legacy gl_FragData, Iris/OptiFine applies the current alpha test.
     // Do not replace the input alpha with opaque alpha or a fixed threshold.
     vec3 sceneColor = surface.rgb * illumination;
+#if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
+    sceneColor = blohoLighting(surface.rgb, illumination, viewNormal, lightUV, lightingScenePosition, materialId);
+#endif
 #if BLOHO_FOG == 1 && defined BLOHO_FOGGED
     sceneColor = blohoFog(sceneColor, fogViewPosition);
 #endif

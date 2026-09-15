@@ -51,12 +51,16 @@ def main():
         ('glTexCoord2f', None, [F, F]),
         ('glMultiTexCoord2f', None, [U, F, F]),
         ('glVertexAttrib3f', None, [U, F, F, F]),
+        ('glMatrixMode', None, [U]),
+        ('glLoadMatrixf', None, [C.POINTER(F)]),
+        ('glDepthFunc', None, [U]),
     ]:
         driver.bind(name, result, *args)
 
     programs = {}
     def use(name, effects=None):
-        options = dict(BLOHO_BLOOM=0, BLOHO_FOG=0, BLOHO_CLOUDS=0)
+        options = dict(BLOHO_BLOOM=0, BLOHO_FOG=0, BLOHO_CLOUDS=0,
+                       BLOHO_LIGHTING=0, BLOHO_SHADOWS=0, BLOHO_GRADE=0, BLOHO_WATER=0)
         options.update(effects or {})
         key = (name, tuple(sorted(options.items())))
         if key not in programs:
@@ -65,7 +69,7 @@ def main():
         program = programs[key]
         gl.glUseProgram(program)
         for uniform, unit in [('gtexture', 0), ('lightmap', 1), ('colortex0', 0),
-                              ('colortex4', 2), ('colortex5', 3), ('depthtex0', 4)]:
+                              ('colortex4', 2), ('colortex5', 3), ('depthtex0', 4), ('shadowtex0', 5)]:
             loc = gl.glGetUniformLocation(program, uniform.encode())
             if loc >= 0:
                 gl.glUniform1i(loc, unit)
@@ -115,15 +119,15 @@ def main():
         gl.glActiveTexture(0x84C0 + unit)
         gl.glBindTexture(0x0DE1, tex)
 
-    def draw(color=(1, 1, 1, 1)):
+    def draw(color=(1, 1, 1, 1), z=0, material=4):
         gl.glColor4f(*color)
         gl.glNormal3f(0, 0, 1)
-        gl.glVertexAttrib3f(10, 4, 0, 0)
+        gl.glVertexAttrib3f(10, material, 0, 0)
         gl.glMultiTexCoord2f(0x84C1, 0.5, 0.5)
         gl.glBegin(5)  # triangle strip
         for x, y in [(0,0), (1,0), (0,1), (1,1)]:
             gl.glTexCoord2f(x, y)
-            gl.glVertex3f(x*2-1, y*2-1, 0)
+            gl.glVertex3f(x*2-1, y*2-1, z)
         gl.glEnd()
 
     def pixel(index=0, x=2, y=2):
@@ -317,6 +321,105 @@ def main():
         use('world1/deferred', {'BLOHO_CLOUDS': 1})
         draw()
         check(pixel(), [0.2, 0.2, 0.2, 1], 'End bypasses procedural clouds')
+
+        # v0.3: cast a real depth shadow, then sample it in surface lighting.
+        bind(5, 0)
+        shadowDepth = U()
+        gl.glGenTextures(1, C.byref(shadowDepth))
+        gl.glBindTexture(0x0DE1, shadowDepth)
+        gl.glTexParameteri(0x0DE1, 0x2801, 0x2600)
+        gl.glTexParameteri(0x0DE1, 0x2800, 0x2600)
+        gl.glTexImage2D(0x0DE1, 0, 0x81A6, 4, 4, 0, 0x1902, 0x1406, None)
+        attach([presented])
+        gl.glFramebufferTexture2DEXT(0x8D40, 0x8D00, 0x0DE1, shadowDepth.value, 0)
+        assert gl.glCheckFramebufferStatusEXT(0x8D40) == 0x8CD5
+        gl.glEnable(0x0B71)
+        gl.glDepthFunc(0x0201)
+        gl.glClear(0x0100)
+        inverseZ = [1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,1]
+        gl.glMatrixMode(0x1701)
+        gl.glLoadMatrixf((F * 16)(*inverseZ))
+        bind(0, dim)
+        use('shadow')
+        draw(z=0.5, material=-1)
+        depthPixel = (F * 1)()
+        gl.glReadPixels(2, 2, 1, 1, 0x1902, 0x1406, depthPixel)
+        check(list(depthPixel), [0.25], 'shadow caster writes light-camera depth')
+        gl.glClear(0x0100)
+        draw((1, 1, 1, 0), z=0.5, material=-1)
+        gl.glReadPixels(2, 2, 1, 1, 0x1902, 0x1406, depthPixel)
+        check(list(depthPixel), [1.0], 'shadow cutouts preserve depth holes')
+        draw(z=0.5, material=1)
+        gl.glReadPixels(2, 2, 1, 1, 0x1902, 0x1406, depthPixel)
+        check(list(depthPixel), [1.0], 'water does not cast an opaque shadow')
+        draw(z=0.5, material=-1)
+        gl.glFramebufferTexture2DEXT(0x8D40, 0x8D00, 0x0DE1, 0, 0)
+        gl.glDisable(0x0B71)
+        gl.glLoadMatrixf((F * 16)(*identity))
+        gl.glMatrixMode(0x1700)
+        bind(0, dim)
+        bind(1, 0)
+        fullLight = texture(0x8058, 1, (1, 1, 1, 1))
+        bind(1, fullLight)
+        bind(5, shadowDepth.value)
+
+        def setLighting(program):
+            matrix(program, 'gbufferModelViewInverse', identity)
+            matrix(program, 'gbufferModelView', identity)
+            matrix(program, 'shadowModelView', identity)
+            matrix(program, 'shadowProjection', inverseZ)
+            uniform(program, 'sunPosition', 0.0, 100.0, 100.0)
+            uniform(program, 'shadowLightPosition', 0.0, 0.0, 100.0)
+
+        program = use('gbuffers_terrain', {'BLOHO_LIGHTING': 1, 'BLOHO_SHADOWS': 1})
+        setLighting(program)
+        draw(material=-1)
+        inShadow = pixel()
+        program = use('gbuffers_terrain', {'BLOHO_LIGHTING': 1, 'BLOHO_SHADOWS': 0})
+        setLighting(program)
+        draw(material=-1)
+        inSun = pixel()
+        assert inSun[0] > inShadow[0] + 0.02, (inSun, inShadow)
+        assert min(inShadow[:3]) > 0.0, 'Shadow must retain ambient light'
+        check(inSun[3:], inShadow[3:], 'shadows change illumination without changing alpha')
+        print('PASS: actual shadow depth darkens the receiver while retaining ambient')
+
+        # Confirm the promoted scene attachment retains emission above 1.0.
+        bind(0, 0)
+        hdrTarget = texture(0x881A, 4)
+        brightSurface = texture(0x8058, 1, (0.9, 0.7, 0.4, 0.65))
+        attach([hdrTarget])
+        bind(0, brightSurface)
+        program = use('gbuffers_terrain', {'BLOHO_LIGHTING': 1})
+        setLighting(program)
+        draw(material=5)
+        hdrPixel = pixel()
+        assert hdrPixel[0] > 1.5, hdrPixel
+        check(hdrPixel[3:], [0.65], 'emissive HDR scene preserves alpha')
+        print('PASS: emissive highlights survive above display white')
+        attach([presented])
+        bind(0, hdrTarget)
+        use('final', {'BLOHO_GRADE': 1})
+        draw()
+        graded = pixel()
+        assert 0.0 < graded[2] < graded[1] < graded[0] < 1.0, graded
+        check(graded[3:], [0.65], 'highlight roll-off preserves hue order and alpha')
+        # Contrast is anchored at black; no accidental haze from the grade.
+        bind(0, 0)
+        black = texture(0x8058, 1, (0, 0, 0, 0.35))
+        use('final', {'BLOHO_GRADE': 1})
+        draw()
+        check(pixel(), [0, 0, 0, 0.35], 'color grade preserves black and alpha')
+        # Water normal/sheen path is finite and keeps texture opacity intact.
+        bind(0, brightSurface)
+        program = use('gbuffers_water', {'BLOHO_LIGHTING': 1, 'BLOHO_WATER': 1})
+        setLighting(program)
+        uniform(program, 'skyColor', 0.25, 0.45, 0.8)
+        draw(material=1)
+        waterPixel = pixel()
+        assert all(math.isfinite(x) for x in waterPixel), waterPixel
+        check(waterPixel[3:], [0.65], 'animated water lighting preserves opacity')
+
         if '--preview' in sys.argv:
             bind(0, 0)
             previewTarget = texture(0x8058, 512)

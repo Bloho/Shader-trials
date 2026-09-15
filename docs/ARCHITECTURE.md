@@ -1,4 +1,50 @@
-# BlohoShaders architecture — v0.2
+# BlohoShaders architecture — v0.3
+
+## Lighting milestone additions
+
+The user's successful v0.2 test unlocked the next milestone. Four shared files
+implement the new look: `lighting.glsl`, `shadow.glsl`, `shadow_config.glsl`, and
+`grading.glsl`, plus one shadow caster vertex/fragment pair. No additional scene
+postprocess passes or color targets were added.
+
+- **Lighting:** shared forward surface lighting preserves sampled Minecraft
+  lightmap levels and vertex AO. With Lighting enabled, a conditional
+  `oldLighting=false` property removes the engine's fixed face tint, and normal
+  lighting provides directionality. Disabling it restores `oldLighting=true`.
+  Direct light follows the shadow-light direction; ambient remains in shadow.
+  Local light is warmed without introducing a separate dynamic-light system.
+- **Shadows:** a regular orthographic 2048 map covers 96 blocks by default.
+  Caster geometry uses the engine's light-camera transform. Receivers transform
+  camera-relative position through shadowModelView/shadowProjection, apply a
+  small normal offset, and average nine explicit depth comparisons. Visibility
+  fades at map boundaries/range. No distorted map, cascade, colored shadow, or
+  contact-hardening system. Transparent terrain is excluded. The caster also
+  rejects water/plain glass and texture alpha below its binary cutout threshold.
+- **Scope:** shadow reception runs for Overworld/root surfaces other than hand.
+  Nether/End shadow programs are disabled. They receive simple normal-based face
+  shading and local warmth without assuming an Overworld sun. Each world/root has
+  a complete shader set: **104 program pairs**.
+- **Emission:** the original ID table adds class 5 for selected bright blocks;
+  lava/class 5 bright texels can exceed display white. Other resource-pack
+  emissive/PBR materials are not automatically inferred.
+- **Water:** water's normal is perturbed for shading only, producing animated
+  specular highlights and a grazing-angle sky-color sheen. It changes neither
+  mesh position nor alpha, and does not implement scene reflections/refraction.
+- **Presentation:** colortex0 is now RGBA16F. Existing bloom buffers retain bright
+  energy until final presentation. Final adds bloom, adjusts exposure/warmth,
+  compresses highlight magnitude while preserving channel ratios, then applies
+  saturation, smooth contrast, and optional mild vignette. No copied filmic LUT
+  or tone curve. This remains a display-referred, art-directed pipeline; float
+  storage does not imply fully linear physical lighting.
+
+Baseline turns all effects off, Atmosphere restores v0.2 settings, Balanced is
+the new default, and Vivid is stronger grading at the same rendering cost. The
+former ZIPs are preserved. Float scene storage may differ from the original
+RGBA8 baseline by small rounding amounts. Shadow allocation/dispatch is selected
+by conditional program directives and shadow sampler usage.
+
+The historical sections below remain useful for the geometry/buffer contract;
+this section supersedes claims that shadow maps or custom lighting are absent.
 
 ## Atmosphere milestone additions
 
@@ -93,7 +139,7 @@ No history, mipmaps, shadow samplers, or persistent buffers are allocated.
 
 | Target | Format | Contents | Lifetime |
 | --- | --- | --- | --- |
-| colortex0 | RGBA8 | texture × vertex RGB × sampled Minecraft lightmap; source alpha follows texture × vertex alpha | scene, deferred, later geometry, composite, final |
+| colortex0 | RGBA16F | scene RGB, including enabled lighting/fog; source alpha follows texture × vertex alpha | scene, deferred, later geometry, composite, final |
 | colortex1 | RGBA8 | texture × vertex color, including entity overlay tint; alpha is surface coverage | metadata-writing geometry until next frame |
 | colortex2 | RGBA16F | view-space unit normal encoded as n/2 + 1/2; A=normal validity | metadata-writing geometry until next frame |
 | colortex3 | RGBA32F | RG=transformed lightmap UV; B=loader material ID; A=geometry family | metadata-writing geometry until next frame |

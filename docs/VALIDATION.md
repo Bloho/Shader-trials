@@ -1,5 +1,33 @@
 # Validation — 2026-09-16
 
+## v0.3 lighting milestone
+
+The user confirmed v0.2 works and requested a stronger high-end look without
+unnecessary complexity. Added shared forward directional lighting, one regular
+filtered sun/moon shadow map, emissive highlights, water shading, and original
+exposure/contrast/saturation/highlight presentation. Existing bloom passes were
+retained and strengthened; no new scene postprocessing passes were required.
+
+- **1,872 compile/link checks passed:** 104 program pairs across 18 representative
+  configurations. These exercise the old three-effect toggle group, the new
+  lighting/shadow/grade group, all-off fallback, and water-off. This is not an
+  exhaustive Cartesian product of every setting or slider value.
+- **38 offscreen checks passed:** the previous 28 regression checks plus actual
+  shadow depth casting, cutout holes, water caster exclusion, receiver darkening
+  with ambient retained, shadow alpha preservation, emissive float range/alpha,
+  highlight hue/alpha preservation, black preservation, and water opacity.
+- Native validation ran on Apple M5 / OpenGL 2.1 Metal - 91.7, with no OpenGL
+  errors at test checkpoints. Four-target geometry and shadow depth framebuffers
+  were exercised. The new package builder checks archive integrity.
+- v0.1 and v0.2 archives are retained unchanged. New output:
+  `dist/BlohoShaders-lighting-v0.3.zip`.
+
+**Not yet tested in Minecraft:** actual shadow camera alignment, contact bias,
+foliage/animated entity casting, moving-camera stability, engine option parsing,
+final exposure/art direction, and performance. Run the v0.3 checklist before
+another subsystem is added. Passing local tests is not a claim of BSL or
+Complementary feature/visual parity.
+
 ## v0.2 atmosphere milestone
 
 The user confirmed the original baseline works normally in Minecraft. That

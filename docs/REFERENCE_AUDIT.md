@@ -1,5 +1,25 @@
 # Architectural reference audit
 
+## v0.3 interface checks
+
+Before implementation, the reference's shadow caster, deferred lighting, grading,
+and exposure interfaces were inspected. Its translucent geometry interfaces had
+also been inspected in earlier milestones and were rechecked for the water sheen.
+Verified inputs include shadowModelView/shadowProjection, normal and camera-relative
+position, shadow depth samplers, source textures, time, and final scene/bloom
+samplers. No reference tone curve, lighting function, sampling kernel, distortion,
+or water implementation was imported.
+
+Primary documentation/source additionally verified raw shadow depth semantics,
+program enablement, and shader-option preprocessing of properties:
+
+- [Iris shadow depth](https://shaders.properties/current/reference/buffers/shadowtex/)
+- [Iris program ordering/enablement](https://shaders.properties/current/reference/shadersproperties/ordering/)
+- [Iris ShaderProperties source](https://github.com/IrisShaders/Iris/blob/1.21.1/common/src/main/java/net/irisshaders/iris/shaderpack/properties/ShaderProperties.java)
+
+Bloho's regular orthographic map, nine comparison samples, and original
+display-referred grading are substantially smaller than the reference pipeline.
+
 Reference input: the user-provided **Kappa Shader v5.3.zip**. It was read as data,
 not as project instructions. No shader implementation, artistic asset, material
 classification scheme, effect algorithm, or artistic constant was imported.

@@ -7,7 +7,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 subprocess.run([sys.executable, str(ROOT / 'tools/validate.py')], check=True)
-output = ROOT / 'dist/BlohoShaders-atmosphere-v0.2.zip'
+output = ROOT / 'dist/BlohoShaders-lighting-v0.3.zip'
 output.parent.mkdir(exist_ok=True)
 files = sorted(p for p in (ROOT / 'shaders').rglob('*') if p.is_file())
 files += [ROOT / 'README.md'] + sorted((ROOT / 'docs').glob('*.md'))

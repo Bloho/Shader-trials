@@ -2,6 +2,9 @@
 #define BLOHO_GEOMETRY_INTERFACE
 #include "/settings.glsl"
 varying vec4 vertexTint;
+#if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
+varying vec3 lightingScenePosition;
+#endif
 #if BLOHO_FOG == 1 && defined BLOHO_FOGGED
 varying vec3 fogViewPosition;
 #endif

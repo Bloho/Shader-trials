@@ -132,7 +132,7 @@ class Driver:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--driver', action='store_true')
-    parser.add_argument('--matrix', action='store_true', help='Compile every combination of the three effect toggles')
+    parser.add_argument('--matrix', action='store_true', help='Compile old/new effect groups plus fallback and water-off variants')
     args = parser.parse_args()
     for path, text in generated_files():
         assert path.read_text() == text, f'Stale generated file: {path}'
@@ -146,6 +146,10 @@ def main():
     if args.matrix:
         variants = [dict(zip(('BLOHO_BLOOM', 'BLOHO_FOG', 'BLOHO_CLOUDS'), bits))
                     for bits in itertools.product((0, 1), repeat=3)]
+        variants += [dict(zip(('BLOHO_LIGHTING', 'BLOHO_SHADOWS', 'BLOHO_GRADE'), bits))
+                     for bits in itertools.product((0, 1), repeat=3)]
+        variants += [dict(BLOHO_BLOOM=0, BLOHO_FOG=0, BLOHO_CLOUDS=0, BLOHO_LIGHTING=0,
+                          BLOHO_SHADOWS=0, BLOHO_GRADE=0, BLOHO_WATER=0), dict(BLOHO_WATER=0)]
     try:
         for variant in variants:
           for vp in sorted(p for p in expected if p.suffix == '.vsh'):

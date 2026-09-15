@@ -1,4 +1,7 @@
 #include "/lib/geometry_interface.glsl"
+#if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
+uniform mat4 gbufferModelViewInverse;
+#endif
 
 #ifdef BLOHO_TERRAIN
 attribute vec3 mc_Entity;
@@ -15,6 +18,9 @@ void main() {
     // Compatibility inputs also let the loader supply chunk offsets.
     gl_Position = ftransform();
     vertexTint = gl_Color;
+#if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
+    lightingScenePosition = (gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex).xyz;
+#endif
 #if BLOHO_FOG == 1 && defined BLOHO_FOGGED
     fogViewPosition = (gl_ModelViewMatrix * gl_Vertex).xyz;
 #endif

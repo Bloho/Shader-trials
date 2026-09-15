@@ -1,7 +1,7 @@
 // Engine directives are deliberately in a comment: RGBA8 etc. are loader
 // tokens, not GLSL identifiers. Included by the deferred fragment entry point.
 /*
-const int colortex0Format = RGBA8;
+const int colortex0Format = RGBA16F;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA16F;
 const int colortex3Format = RGBA32F;
