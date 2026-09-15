@@ -1,5 +1,43 @@
 # Validation — 2026-09-16
 
+## v0.3.2 shadow stripe correction
+
+The old nine-tap filter compared every sample against one receiver depth. On a
+surface inclined in light space, neighbor texels and nearest-sample rounding
+therefore produced false self-shadowing. The correction evaluates the receiver
+plane depth at each actual sampled texel center using the normal and the existing
+orthographic light matrices. No new engine interfaces, passes, or targets.
+
+- 104 default program pairs passed native compile/link and static interface checks.
+- 65 offscreen checks passed on Apple M5 / OpenGL 2.1 Metal - 91.7.
+- Six new checks use a 2048-square depth map at 35, 70, and -70 degree light angles:
+  unobstructed surfaces remain fully lit and separate blockers retain shadows.
+- Running the same regression with the previous shadow function fails: visibility
+  alternates between 2/3 and 1 on the unobstructed plane. The corrected version
+  returns 1 throughout. This establishes the bug and local correction, but does
+  not prove it is the only artifact in the user's Minecraft screenshot.
+- No OpenGL errors at checkpoints. Minecraft confirmation remains required.
+- Output: `dist/BlohoShaders-shadow-fix-v0.3.2.zip`; previous ZIPs preserved.
+
+## v0.3.1 ore glow
+
+Added original texture-color masks for ore emission, using the existing bloom
+passes. Terrain alpha, depth, metadata, and render targets are unchanged. Coal
+and ancient debris emission is optional and disabled by default.
+
+- **104 default program pairs passed native compilation/linking**, plus static
+  include, varying, uniform, output, and world-entry checks.
+- **59 offscreen checks passed:** the previous 38 checks plus ten mineral-color
+  fixtures, seven host-rock/non-ore/default-off rejection fixtures, optional coal,
+  the ore toggle, zero strength, and fog attenuation. Emission and alpha were
+  checked in a black lightmap fixture.
+- Native validation used Apple M5 / OpenGL 2.1 Metal - 91.7, with no OpenGL errors
+  at test checkpoints. The full configuration matrix was not rerun this turn.
+- Fixtures use synthetic texture colors; they do not establish exact coverage
+  of Minecraft textures or resource packs. Minecraft appearance, option parsing,
+  and bloom balance still require the ore checklist in TESTING.md.
+- Output: `dist/BlohoShaders-ores-v0.3.1.zip`. Prior archives are retained.
+
 ## v0.3 lighting milestone
 
 The user confirmed v0.2 works and requested a stronger high-end look without

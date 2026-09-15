@@ -11,11 +11,22 @@ float blohoShadow(vec3 scenePosition, vec3 worldNormal) {
     vec3 uvDepth = lightClip.xyz / lightClip.w * 0.5 + 0.5;
     if (uvDepth.z <= 0.0 || uvDepth.z >= 1.0 ||
         min(uvDepth.x, uvDepth.y) < 2.0 * texel || max(uvDepth.x, uvDepth.y) > 1.0 - 2.0 * texel) return 1.0;
+    // In our regular orthographic map, a surface plane has a linear depth
+    // gradient. Compare each tap against that plane at the sampled texel center,
+    // rather than comparing all nine depths against the center receiver depth.
+    // This prevents inclined surfaces from shadowing themselves across the kernel.
+    vec3 lightNormal = mat3(shadowModelView) * worldNormal;
+    if (abs(lightNormal.z) < 0.0001) return 1.0;
+    vec2 depthGradient = -lightNormal.xy / lightNormal.z *
+        vec2(shadowProjection[2][2] / shadowProjection[0][0],
+             shadowProjection[2][2] / shadowProjection[1][1]);
     float visibility = 0.0;
     for (int y = -1; y <= 1; ++y) {
         for (int x = -1; x <= 1; ++x) {
-            float storedDepth = texture2D(shadowtex0, uvDepth.xy + vec2(float(x), float(y)) * texel).r;
-            visibility += step(uvDepth.z - 0.00003, storedDepth);
+            vec2 sampleUV = (floor(uvDepth.xy / texel) + vec2(float(x), float(y)) + 0.5) * texel;
+            float storedDepth = texture2D(shadowtex0, sampleUV).r;
+            float receiverDepth = uvDepth.z + dot(depthGradient, sampleUV - uvDepth.xy);
+            visibility += step(receiverDepth - 0.00003, storedDepth);
         }
     }
     float edgeFade = smoothstep(shadowDistance * 0.75, shadowDistance, length(scenePosition.xz));

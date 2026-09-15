@@ -4,15 +4,18 @@ Original Minecraft Java shaderpack foundation for the OptiFine/Iris shader
 environment. This repository starts from an empty workspace; no old BlohoShaders
 implementation is carried forward.
 
-**v0.3 lighting milestone:** the baseline and atmosphere versions were confirmed
+**v0.3.2 shadow fix:** corrects repeating self-shadow stripes on inclined light-space surfaces. Ore glow remains included.
+
+**v0.3.1 ore glow:** colored/metal ore veins and quartz now glow using the existing
+bloom pipeline. Coal/ancient debris glow is optional. The baseline and atmosphere versions were confirmed
 working by the user. This version adds directional lighting, sun/moon shadows,
 emissive highlights, water sheen, and a stronger color grade. It still needs an
 in-game check.
 
 ## Install
 
-Copy `dist/BlohoShaders-lighting-v0.3.zip` into your Minecraft instance's `shaderpacks`
-folder and select **BlohoShaders-lighting-v0.3** in the shader menu. Do not unzip it
+Copy `dist/BlohoShaders-shadow-fix-v0.3.2.zip` into your Minecraft instance's `shaderpacks`
+folder and select **BlohoShaders-ores-v0.3.1** in the shader menu. Do not unzip it
 inside another shaderpack. Alternatively, copy this repository into
 `shaderpacks/BlohoShaders` with `shaders` immediately inside that folder.
 
@@ -27,6 +30,7 @@ The default **Balanced** preset aims between vanilla and cinematic:
 - Warm local lighting and brighter lava/glowstone/sea-lantern/shroomlight/lit-lamp texels.
 - Stronger bloom, exposure, smooth contrast, saturation, and highlight roll-off.
 - Animated water normals for sunlight highlights and an approximate sky sheen.
+- Ore vein emission, including deepslate variants, Nether gold, and quartz.
 - Biome/fluid-colored distance fog and a restrained atmospheric haze.
 - Two moving procedural cloud layers, with day/night/rain color changes.
 
@@ -35,6 +39,13 @@ In **Shader Options**, each effect can be disabled independently. **Baseline
 cloud setting). **Atmosphere** restores the v0.2 effect settings. **Balanced** is
 the new default; **Vivid** increases contrast, saturation, exposure, and bloom.
 The earlier baseline and v0.2 ZIPs are retained as separate fallbacks.
+
+**Shader Options → Ore glow** controls the effect and strength. Bloom must be on
+for a surrounding halo. Emission itself works with directional lighting off.
+Coal/ancient debris glow defaults off because dark coal and deepslate texels are
+ambiguous without dedicated masks. Ore masks are tuned to vanilla texture colors;
+unusual resource packs may need retuning. This is visual emission, not dynamic
+illumination of neighboring blocks, and it does not show hidden ore through walls.
 
 ## Foundation
 

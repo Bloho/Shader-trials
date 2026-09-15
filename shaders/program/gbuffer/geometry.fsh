@@ -5,6 +5,9 @@
 #if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
 #include "/lib/lighting.glsl"
 #endif
+#if BLOHO_ORES == 1 && defined BLOHO_TERRAIN
+#include "/lib/ore_emission.glsl"
+#endif
 
 #ifdef BLOHO_TEXTURED
 uniform sampler2D gtexture;
@@ -23,7 +26,8 @@ void main() {
 #endif
     vec4 surface = vertexTint;
 #ifdef BLOHO_TEXTURED
-    surface *= texture2D(gtexture, surfaceUV);
+    vec4 rawTexel = texture2D(gtexture, surfaceUV);
+    surface *= rawTexel;
 #endif
 #ifdef BLOHO_ENTITY_TINT
     surface.rgb = mix(surface.rgb, entityColor.rgb, entityColor.a);
@@ -37,6 +41,9 @@ void main() {
     vec3 sceneColor = surface.rgb * illumination;
 #if BLOHO_LIGHTING == 1 && defined BLOHO_SURFACE
     sceneColor = blohoLighting(surface.rgb, illumination, viewNormal, lightUV, lightingScenePosition, materialId);
+#endif
+#if BLOHO_ORES == 1 && defined BLOHO_TERRAIN
+    sceneColor = blohoOreEmission(sceneColor, surface.rgb, rawTexel.rgb, materialId);
 #endif
 #if BLOHO_FOG == 1 && defined BLOHO_FOGGED
     sceneColor = blohoFog(sceneColor, fogViewPosition);

@@ -60,7 +60,8 @@ def main():
     programs = {}
     def use(name, effects=None):
         options = dict(BLOHO_BLOOM=0, BLOHO_FOG=0, BLOHO_CLOUDS=0,
-                       BLOHO_LIGHTING=0, BLOHO_SHADOWS=0, BLOHO_GRADE=0, BLOHO_WATER=0)
+                       BLOHO_LIGHTING=0, BLOHO_SHADOWS=0, BLOHO_GRADE=0, BLOHO_WATER=0,
+                       BLOHO_ORES=0)
         options.update(effects or {})
         key = (name, tuple(sorted(options.items())))
         if key not in programs:
@@ -384,6 +385,42 @@ def main():
         check(inSun[3:], inShadow[3:], 'shadows change illumination without changing alpha')
         print('PASS: actual shadow depth darkens the receiver while retaining ambient')
 
+        # A full-resolution sloped depth plane reproduces the old PCF striping.
+        # Exercise the actual shared shadow function, independent of color grading.
+        from array import array
+        shadowSource = (SHADERS / 'lib/shadow.glsl').read_text().replace(
+            '#include "/lib/shadow_config.glsl"',
+            (SHADERS / 'lib/shadow_config.glsl').read_text())
+        slopeProgram = driver.program(
+            '#version 120\nvarying vec3 receiver; void main() { '
+            'gl_Position = gl_Vertex; receiver = vec3(gl_Vertex.xy * 64.0, 0.0); }',
+            '#version 120\nvarying vec3 receiver;\n' + shadowSource +
+            '\nvoid main() { gl_FragColor = vec4(vec3(blohoShadow(receiver, '
+            'vec3(0.0, 0.0, 1.0))), 1.0); }')
+        programs['slope-regression'] = slopeProgram
+        gl.glUseProgram(slopeProgram)
+        uniform(slopeProgram, 'shadowtex0', 5)
+        matrix(slopeProgram, 'shadowProjection',
+               [1/96,0,0,0, 0,1/96,0,0, 0,0,-1/128,0, 0,0,0,1])
+        bind(5, shadowDepth.value)
+        for angle in (35, 70, -70):
+            sine, cosine = math.sin(math.radians(angle)), math.cos(math.radians(angle))
+            matrix(slopeProgram, 'shadowModelView',
+                   [cosine,0,-sine,0, 0,1,0,0, sine,0,cosine,0, 0,0,0,1])
+            gradient = math.tan(math.radians(angle)) * 96/128
+            for blocker in (False, True):
+                row = array('f', (max(0.0, min(1.0,
+                    0.5 + gradient * ((x+0.5)/2048 - 0.5) - (0.02 if blocker else 0.0)))
+                    for x in range(2048)))
+                depths = row * 2048
+                data = (F * len(depths)).from_buffer(depths)
+                gl.glTexImage2D(0x0DE1, 0, 0x81A6, 2048, 2048, 0, 0x1902, 0x1406, data)
+                draw()
+                samples = [pixel(x=x, y=y)[0] for y in range(4) for x in range(4)]
+                check(samples, [0.0 if blocker else 1.0] * 16,
+                      f'sloped shadow plane {angle}: ' +
+                      ('separate blocker retained' if blocker else 'no self-shadow stripes'))
+
         # Confirm the promoted scene attachment retains emission above 1.0.
         bind(0, 0)
         hdrTarget = texture(0x881A, 4)
@@ -419,6 +456,61 @@ def main():
         waterPixel = pixel()
         assert all(math.isfinite(x) for x in waterPixel), waterPixel
         check(waterPixel[3:], [0.65], 'animated water lighting preserves opacity')
+
+        # Ore glow is independent of directional lighting and sampled lightmap.
+        attach([hdrTarget])
+        bind(1, black)
+        oreProgram = use('gbuffers_terrain', {'BLOHO_ORES': 1})
+        for label, oreId, rgb in [
+            ('diamond', 16, (0.15, 0.8, 0.9)),
+            ('emerald', 16, (0.1, 0.8, 0.18)),
+            ('gold', 16, (0.9, 0.7, 0.15)),
+            ('redstone', 16, (0.65, 0.05, 0.02)),
+            ('lapis', 16, (0.06, 0.12, 0.55)),
+            ('copper', 18, (0.75, 0.35, 0.2)),
+            ('oxidized copper', 18, (0.25, 0.65, 0.4)),
+            ('iron', 17, (0.73, 0.57, 0.45)),
+            ('Nether gold', 19, (0.9, 0.7, 0.18)),
+            ('quartz', 20, (0.85, 0.85, 0.8)),
+        ]:
+            bind(0, 0)
+            texture(0x8058, 1, (*rgb, 0.65))
+            draw(material=oreId)
+            orePixel = pixel()
+            assert max(orePixel[:3]) > 1.0, (label, orePixel)
+            check(orePixel[3:], [0.65], label + ' vein glows in darkness and preserves alpha')
+        for label, oreId, rgb in [
+            ('stone around colored ore', 16, (0.35, 0.35, 0.35)),
+            ('stone around iron', 17, (0.35, 0.35, 0.35)),
+            ('deepslate around copper', 18, (0.2, 0.2, 0.2)),
+            ('netherrack around gold', 19, (0.4, 0.12, 0.1)),
+            ('netherrack around quartz', 20, (0.4, 0.12, 0.1)),
+            ('non-ore block', -1, (0.1, 0.8, 0.9)),
+            ('coal by default', 21, (0.05, 0.05, 0.05)),
+        ]:
+            bind(0, 0)
+            texture(0x8058, 1, (*rgb, 0.65))
+            draw(material=oreId)
+            check(pixel(), [0, 0, 0, 0.65], label + ' stays dark')
+        use('gbuffers_terrain', {'BLOHO_ORES': 1, 'NEUTRAL_ORE_GLOW': 1})
+        draw(material=21)
+        assert max(pixel()[:3]) > 1.0, 'Optional coal emission missing'
+        print('PASS: optional coal glow')
+        bind(0, 0)
+        oreTexture = texture(0x8058, 1, (0.1, 0.8, 0.9, 0.65))
+        use('gbuffers_terrain')
+        draw(material=16)
+        check(pixel(), [0, 0, 0, 0.65], 'ore toggle off restores original darkness')
+        use('gbuffers_terrain', {'BLOHO_ORES': 1, 'ORE_GLOW_STRENGTH': 0.0})
+        draw(material=16)
+        check(pixel(), [0, 0, 0, 0.65], 'zero ore strength disables emission')
+        program = use('gbuffers_terrain', {'BLOHO_ORES': 1, 'BLOHO_FOG': 1})
+        uniform(program, 'fogMode', 9729)
+        uniform(program, 'fogStart', 0.0)
+        uniform(program, 'fogEnd', 0.2)
+        uniform(program, 'fogColor', 0.1, 0.3, 0.6)
+        draw(material=16)
+        check(pixel(), [0.1, 0.3, 0.6, 0.65], 'fog still attenuates glowing ore')
 
         if '--preview' in sys.argv:
             bind(0, 0)

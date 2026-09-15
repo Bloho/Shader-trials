@@ -11,6 +11,9 @@
 #define LIGHTING_STRENGTH 1.0 // [0.0 0.5 0.75 1.0]
 #define TORCH_WARMTH 0.7 // [0.0 0.35 0.7 1.0]
 #define EMISSIVE_STRENGTH 1.5 // [0.0 0.5 1.0 1.5 2.0]
+#define BLOHO_ORES 1 // [0 1]
+#define ORE_GLOW_STRENGTH 2.0 // [0.0 0.5 1.0 1.5 2.0 3.0 4.0]
+#define NEUTRAL_ORE_GLOW 0 // [0 1]
 #define BLOHO_WATER 1 // [0 1]
 
 #define BLOHO_GRADE 1 // [0 1]

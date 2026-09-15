@@ -1,5 +1,37 @@
 # Minecraft acceptance test
 
+## v0.3.2: repeating surface stripes
+
+1. Select `BlohoShaders-shadow-fix-v0.3.2.zip` and return to the screenshot location.
+2. With shadows enabled, inspect grass, pavement, and walls while moving/turning.
+   Check noon and low sun angles. Lit surfaces should have no repeated shadow bands.
+3. Confirm buildings still cast shadows and leaves retain cutout shadow holes.
+4. If lines remain, compare Shadows on/off at the same location and time. Send
+   both screenshots, the selected pack filename, Iris/OptiFine version, and any
+   shader/OpenGL errors from `logs/latest.log`.
+
+## v0.3.1 ore glow
+
+Install **BlohoShaders-ores-v0.3.1.zip**, select Balanced or Vivid, and open
+**Shader Options → Ore glow**.
+
+- In a dark cave, inspect diamond, emerald, gold, redstone, lapis, copper, and
+  iron ores, including each deepslate variant. Check all sides and corners. The
+  mineral pixels should glow while the neutral host stone remains dark.
+- In the Nether, check gold and quartz: red netherrack should remain dark.
+- Try strength 0, 1, 2, and 4; turn the Ore Glow toggle off/on. Turn Bloom off:
+  the veins should remain visible but the surrounding halo should disappear.
+- Check ores behind glass/water, with fog, and partly hidden by ordinary blocks.
+  Glow must not bypass depth or reveal covered ore. It does not cast light onto
+  neighboring surfaces or change Minecraft's gameplay light levels.
+- Coal/deepslate coal and ancient debris are optional. Their approximate masks
+  can brighten extra dark/tan texels; compare before enabling them permanently.
+- Start with vanilla textures. With a resource pack, report its name and a close
+  screenshot if background rock glows or veins fail to glow.
+
+If it fails, send `logs/latest.log`, the affected ore/variant, resource pack,
+loader/Minecraft versions, settings, and a screenshot.
+
 ## v0.3 lighting and contrast — test this version first
 
 Install **BlohoShaders-lighting-v0.3.zip** separately and start with **Balanced**.

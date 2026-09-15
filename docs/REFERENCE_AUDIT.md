@@ -1,5 +1,11 @@
 # Architectural reference audit
 
+## Ore glow interface check
+
+The supplied reference's block mapping and emission-helper interfaces were checked
+before this addition. Bloho uses its own IDs and raw-albedo color heuristics. No
+reference emission function, ore mask, constants, or artistic assets were copied.
+
 ## v0.3 interface checks
 
 Before implementation, the reference's shadow caster, deferred lighting, grading,

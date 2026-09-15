@@ -1,5 +1,24 @@
 # BlohoShaders architecture — v0.3
 
+## v0.3.1 ore emission
+
+The block map reserves original IDs 16–22 for ore families (19 block identifiers,
+including optional coal/debris). `ore_emission.glsl` masks raw texture color before
+AO/lightmap shading, then applies hue-preserving emission to the scene RGB before
+fog. Output alpha, metadata, depth, shadow casting, buffers, and pass count remain
+unchanged. This path is independent of the directional-lighting toggle.
+
+Colored ore families reject neutral stone; iron selects warm inclusions; Nether
+gold rejects red netherrack; quartz selects bright neutral inclusions. Coal and
+ancient debris use optional approximate masks and default off. These are original
+vanilla-palette heuristics, not PBR masks or imported texture assets. They are not
+guaranteed for arbitrary resource packs. No new texture samples/passes are added:
+the existing albedo sample is reused. Non-ore IDs return immediately.
+
+Balanced/Vivid enable ore glow; Baseline/Atmosphere disable it. Glow strength zero
+also fully disables emission. Existing bloom supplies the halo; no dynamic light
+propagation or through-wall ore visualization is introduced.
+
 ## Lighting milestone additions
 
 The user's successful v0.2 test unlocked the next milestone. Four shared files
@@ -199,3 +218,12 @@ can extend the current fog/clouds and later host shadows, water, materials, and 
 Dimension flags are ready for Overworld/Nether/End distinctions. Profiles should
 be introduced only when actual quality/cost settings exist. No empty effect
 subsystems or misleading quality profiles are shipped now.
+
+## Shadow filtering correction (v0.3.2)
+
+The existing orthographic raw-depth filter now projects the receiver normal into
+light space and derives a depth gradient. Every comparison uses that plane's depth
+at the nearest texel center, including the fractional center offset. Existing
+normal offset, small depth tolerance, nine taps, and edge fade remain. A nearly
+edge-on plane bypasses the comparison to avoid division by zero; its directional
+light contribution approaches zero. No new uniforms, varyings, or targets.
