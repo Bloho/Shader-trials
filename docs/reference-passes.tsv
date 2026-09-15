@@ -1,0 +1,146 @@
+# Structural metadata only; no reference shader source is distributed.
+# Archive SHA256: 7748c7884d593fcebc23863bd4bad1fbae9fadb9cebc73165290d4705b89fe9d
+entry_point	transitive_files	possible_render_targets
+shaders/world-1/composite.fsh	20	0,3,14
+shaders/world-1/composite1.fsh	11	12,13
+shaders/world-1/composite10.fsh	8	3
+shaders/world-1/composite11.fsh	8	3
+shaders/world-1/composite12.fsh	8	3
+shaders/world-1/composite13.fsh	8	3
+shaders/world-1/composite14.fsh	9	3
+shaders/world-1/composite15.fsh	14	0,6
+shaders/world-1/composite2.fsh	11	3,14
+shaders/world-1/composite3.fsh	21	0
+shaders/world-1/composite4.fsh	8	0,3,9
+shaders/world-1/composite5.fsh	9	0,6,10
+shaders/world-1/composite6.fsh	8	0
+shaders/world-1/composite7.fsh	9	3
+shaders/world-1/composite8.fsh	11	0,3
+shaders/world-1/composite9.fsh	8	0,3
+shaders/world-1/deferred10.fsh	11	3
+shaders/world-1/deferred11.fsh	12	3
+shaders/world-1/deferred12.fsh	10	0,3,4
+shaders/world-1/deferred3.fsh	16	0,3,4,15
+shaders/world-1/deferred4.fsh	17	3
+shaders/world-1/deferred5.fsh	11	3,7,11
+shaders/world-1/deferred6.fsh	11	3
+shaders/world-1/deferred7.fsh	11	3
+shaders/world-1/deferred8.fsh	11	3
+shaders/world-1/deferred9.fsh	11	3
+shaders/world-1/final.fsh	11	
+shaders/world-1/gbuffers_armor_glint.fsh	9	0
+shaders/world-1/gbuffers_basic.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_block.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_clouds.fsh	2	
+shaders/world-1/gbuffers_entities.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_hand.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_hand_water.fsh	19	1,2,3,4
+shaders/world-1/gbuffers_line.fsh	11	0,1,2,4
+shaders/world-1/gbuffers_skybasic.fsh	2	
+shaders/world-1/gbuffers_skytextured.fsh	8	0
+shaders/world-1/gbuffers_spidereyes.fsh	9	0
+shaders/world-1/gbuffers_terrain.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_textured.fsh	15	0,1,2,4
+shaders/world-1/gbuffers_textured_lit.fsh	21	0,1,2,4; 1,2,3,4
+shaders/world-1/gbuffers_translucent.fsh	18	1,2,3,4
+shaders/world-1/gbuffers_water.fsh	19	1,2,3,4
+shaders/world-1/prepare.fsh	7	0
+shaders/world0/composite.fsh	20	0,3,14
+shaders/world0/composite1.fsh	11	12,13
+shaders/world0/composite10.fsh	8	3
+shaders/world0/composite11.fsh	8	3
+shaders/world0/composite12.fsh	8	3
+shaders/world0/composite13.fsh	8	3
+shaders/world0/composite14.fsh	9	3
+shaders/world0/composite15.fsh	14	0,6
+shaders/world0/composite2.fsh	23	0
+shaders/world0/composite4.fsh	8	0,3,9
+shaders/world0/composite5.fsh	9	0,6,10
+shaders/world0/composite6.fsh	8	0
+shaders/world0/composite7.fsh	9	3
+shaders/world0/composite8.fsh	11	0,3
+shaders/world0/composite9.fsh	8	0,3
+shaders/world0/deferred.fsh	21	3,14
+shaders/world0/deferred1.fsh	12	3,8,10
+shaders/world0/deferred10.fsh	11	3
+shaders/world0/deferred11.fsh	12	3
+shaders/world0/deferred12.fsh	10	0,3,4
+shaders/world0/deferred2.fsh	19	0,3
+shaders/world0/deferred3.fsh	22	0,3,4,14,15
+shaders/world0/deferred4.fsh	17	3
+shaders/world0/deferred5.fsh	11	3,7,11
+shaders/world0/deferred6.fsh	11	3
+shaders/world0/deferred7.fsh	11	3
+shaders/world0/deferred8.fsh	11	3
+shaders/world0/deferred9.fsh	11	3
+shaders/world0/final.fsh	11	
+shaders/world0/gbuffers_armor_glint.fsh	9	0
+shaders/world0/gbuffers_basic.fsh	15	0,1,2,4
+shaders/world0/gbuffers_beaconbeam.fsh	15	0,1,2,4
+shaders/world0/gbuffers_block.fsh	15	0,1,2,4
+shaders/world0/gbuffers_clouds.fsh	2	
+shaders/world0/gbuffers_entities.fsh	15	0,1,2,4
+shaders/world0/gbuffers_hand.fsh	15	0,1,2,4
+shaders/world0/gbuffers_hand_water.fsh	22	1,2,3,4
+shaders/world0/gbuffers_line.fsh	11	0,1,2,4
+shaders/world0/gbuffers_skybasic.fsh	2	
+shaders/world0/gbuffers_skytextured.fsh	9	0
+shaders/world0/gbuffers_spidereyes.fsh	9	0
+shaders/world0/gbuffers_terrain.fsh	15	0,1,2,4
+shaders/world0/gbuffers_textured.fsh	15	0,1,2,4
+shaders/world0/gbuffers_textured_lit.fsh	24	0,1,2,4; 1,2,3,4
+shaders/world0/gbuffers_translucent.fsh	21	1,2,3,4
+shaders/world0/gbuffers_water.fsh	22	1,2,3,4
+shaders/world0/gbuffers_weather.fsh	8	15
+shaders/world0/prepare.fsh	12	5
+shaders/world0/prepare1.fsh	9	14
+shaders/world0/prepare2.fsh	18	5
+shaders/world0/shadow.fsh	16	
+shaders/world0/shadowcomp.fsh	16	
+shaders/world1/composite.fsh	20	0,3,14
+shaders/world1/composite1.fsh	11	12,13
+shaders/world1/composite10.fsh	8	3
+shaders/world1/composite11.fsh	8	3
+shaders/world1/composite12.fsh	8	3
+shaders/world1/composite13.fsh	8	3
+shaders/world1/composite14.fsh	9	3
+shaders/world1/composite15.fsh	14	0,6
+shaders/world1/composite2.fsh	11	3,14
+shaders/world1/composite3.fsh	21	0
+shaders/world1/composite4.fsh	8	0,3,9
+shaders/world1/composite5.fsh	9	0,6,10
+shaders/world1/composite6.fsh	8	0
+shaders/world1/composite7.fsh	9	3
+shaders/world1/composite8.fsh	11	0,3
+shaders/world1/composite9.fsh	8	0,3
+shaders/world1/deferred10.fsh	11	3
+shaders/world1/deferred11.fsh	12	3
+shaders/world1/deferred12.fsh	10	0,3,4
+shaders/world1/deferred2.fsh	19	0,3
+shaders/world1/deferred3.fsh	22	0,3,4,14,15
+shaders/world1/deferred4.fsh	17	3
+shaders/world1/deferred5.fsh	11	3,7,11
+shaders/world1/deferred6.fsh	11	3
+shaders/world1/deferred7.fsh	11	3
+shaders/world1/deferred8.fsh	11	3
+shaders/world1/deferred9.fsh	11	3
+shaders/world1/final.fsh	11	
+shaders/world1/gbuffers_armor_glint.fsh	9	0
+shaders/world1/gbuffers_basic.fsh	15	0,1,2,4
+shaders/world1/gbuffers_beaconbeam.fsh	15	0,1,2,4
+shaders/world1/gbuffers_block.fsh	15	0,1,2,4
+shaders/world1/gbuffers_clouds.fsh	2	
+shaders/world1/gbuffers_entities.fsh	15	0,1,2,4
+shaders/world1/gbuffers_hand.fsh	15	0,1,2,4
+shaders/world1/gbuffers_hand_water.fsh	22	1,2,3,4
+shaders/world1/gbuffers_line.fsh	11	0,1,2,4
+shaders/world1/gbuffers_skybasic.fsh	2	
+shaders/world1/gbuffers_skytextured.fsh	8	0
+shaders/world1/gbuffers_spidereyes.fsh	9	0
+shaders/world1/gbuffers_terrain.fsh	15	0,1,2,4
+shaders/world1/gbuffers_textured.fsh	15	0,1,2,4
+shaders/world1/gbuffers_textured_lit.fsh	24	0,1,2,4; 1,2,3,4
+shaders/world1/gbuffers_translucent.fsh	21	1,2,3,4
+shaders/world1/gbuffers_water.fsh	22	1,2,3,4
+shaders/world1/shadow.fsh	16	
+shaders/world1/shadowcomp.fsh	16	

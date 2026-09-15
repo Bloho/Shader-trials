@@ -1,0 +1,37 @@
+#include "/lib/geometry_interface.glsl"
+
+#ifdef BLOHO_TERRAIN
+attribute vec3 mc_Entity;
+#endif
+#ifdef BLOHO_ENTITY
+uniform int entityId;
+#endif
+#ifdef BLOHO_BLOCK_ENTITY
+uniform int blockEntityId;
+#endif
+
+void main() {
+    // Keep the same engine transform for geometry and its overlays.
+    // Compatibility inputs also let the loader supply chunk offsets.
+    gl_Position = ftransform();
+    vertexTint = gl_Color;
+#ifdef BLOHO_TEXTURED
+    surfaceUV = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+#endif
+#ifdef BLOHO_LIGHTMAP
+    lightUV = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+#endif
+#ifdef BLOHO_SURFACE
+    viewNormal = gl_NormalMatrix * gl_Normal;
+    materialId = -1.0;
+#ifdef BLOHO_TERRAIN
+    materialId = mc_Entity.x;
+#endif
+#ifdef BLOHO_ENTITY
+    materialId = float(entityId);
+#endif
+#ifdef BLOHO_BLOCK_ENTITY
+    materialId = float(blockEntityId);
+#endif
+#endif
+}
