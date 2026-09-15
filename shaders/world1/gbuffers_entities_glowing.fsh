@@ -7,5 +7,6 @@
 #define BLOHO_ENTITY
 #define BLOHO_ENTITY_TINT
 #define BLOHO_FAMILY 3.0
+#define BLOHO_FOGGED
 /* DRAWBUFFERS:0123 */
 #include "/program/gbuffer/geometry.fsh"

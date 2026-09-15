@@ -15,6 +15,9 @@ void main() {
     // Compatibility inputs also let the loader supply chunk offsets.
     gl_Position = ftransform();
     vertexTint = gl_Color;
+#if BLOHO_FOG == 1 && defined BLOHO_FOGGED
+    fogViewPosition = (gl_ModelViewMatrix * gl_Vertex).xyz;
+#endif
 #ifdef BLOHO_TEXTURED
     surfaceUV = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 #endif

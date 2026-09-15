@@ -7,4 +7,5 @@
 #define BLOHO_BLOCK_ENTITY
 #define BLOHO_ENTITY_TINT
 #define BLOHO_FAMILY 2.0
+#define BLOHO_FOGGED
 #include "/program/gbuffer/geometry.vsh"

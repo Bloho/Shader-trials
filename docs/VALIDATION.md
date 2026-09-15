@@ -1,4 +1,38 @@
-# Milestone 1 validation — 2026-09-16
+# Validation — 2026-09-16
+
+## v0.2 atmosphere milestone
+
+The user confirmed the original baseline works normally in Minecraft. That
+confirmation authorized the next incremental effects milestone.
+
+New changes: per-surface fog, original layered procedural Overworld clouds,
+half-resolution bloom extraction/blur, independent options, and Baseline/Balanced
+presets. The original ZIP remains untouched; the new package is
+`BlohoShaders-atmosphere-v0.2.zip`.
+
+- **800 compile/link variants passed:** 100 program pairs × all eight independent
+  bloom/fog/cloud toggle combinations, on Apple M5 / OpenGL 2.1 Metal - 91.7.
+- Static checks cover includes, generated entry points/properties, vertex/fragment
+  varyings, shared uniform types, output indices, and six-target routing.
+- **28 offscreen checks passed:** the 14 baseline regression checks, five fog
+  checks (including alpha/metadata and additive overlays), four bloom checks
+  (two-axis spread, alpha, and dark-scene rejection), and five cloud checks
+  (visibility, opaque occlusion, fluid and dimension bypass).
+- A synthetic 512×512 cloud render was visually inspected. The layers are
+  visible, soft-edged, and fade near the horizon. This is a shader-harness image,
+  not an in-game screenshot or proof of the final appearance in Minecraft.
+- No OpenGL errors at the native test checkpoints. ZIP integrity is checked by
+  the package builder.
+
+The new effects are **not yet tested in Minecraft**. Loader option parsing,
+actual fog uniforms, transparency ordering, shader reloads, dimension changes,
+and FPS still need the v0.2 acceptance check in TESTING.md. The native harness
+does not exercise Iris's rewritten shader variants or Minecraft's draw dispatch.
+
+## Milestone 1 history
+
+The following records the original baseline validation, before the user's
+subsequent successful in-game test.
 
 ## Changes
 

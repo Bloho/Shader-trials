@@ -1,8 +1,48 @@
 # Minecraft acceptance test
 
+## v0.2 bloom, fog, and clouds
+
+The user confirmed the first baseline renders normally. Install
+`BlohoShaders-atmosphere-v0.2.zip` as a **separate pack** and start with **Balanced**.
+Keep the original baseline ZIP for direct comparisons. The checks below focus on
+the new effects, followed by the geometry regression checklist.
+
+1. **Bloom:** compare torches, lava, glowstone, sunlit white blocks, and a dark
+   cave. Toggle Bloom and vary its strength/radius. Highlights should gain soft
+   halos; dark surfaces should not get a gray veil. This is scene-highlight bloom,
+   so white non-emissive surfaces can also glow. Check the window edges, resize,
+   and toggle fullscreen for stale textures or stretched blur.
+2. **Fog:** look across distant terrain, a cave entrance, and through overlapping
+   water/glass. Toggle Fog. Test rain, underwater, lava in spectator/creative,
+   the Nether, and the End. Fog should use the current biome/fluid color without
+   making transparent texture holes opaque. Eyes/glints should fade, not add a
+   fog-colored glow. The atmospheric haze slider controls the extra haze, not
+   the engine's base distance/fluid fog; disable Fog to remove both.
+3. **Clouds:** look up in the Overworld during day, sunset, night, and rain. Clouds
+   should drift and leave gaps; they should not cover nearby mountains or your
+   hand. Fly below, through, and above the configured height (default 224). Try
+   coverage and height controls. These are two soft sheets, so do not expect the
+   interior of a volumetric cloud. Check particles, transparent entities, and glass
+   against clouds for ordering issues. The legacy pipeline can draw those at
+   different times, and their depth behavior must be checked in Minecraft.
+4. **Fallback:** switch to **Baseline (effects off)**. Bloom and fog should vanish
+   and vanilla clouds should return when enabled in Video Settings. Compare
+   terrain, transparency, hand, and sky with the accepted original baseline ZIP.
+5. **Dimensions/reload:** Overworld clouds must not appear in the Nether or End.
+   Switch dimensions and reload each effect combination. Watch for black screens,
+   missing terrain, framebuffer warnings, or an invalid-program message.
+6. **Performance:** note FPS in the same scene for Baseline and Balanced, at the
+   same resolution/render distance. Report unusually large drops with GPU,
+   resolution, loader, and screenshot details.
+
+Send `logs/latest.log` after a failure, the effect/settings that trigger it,
+screenshots, exact Minecraft/loader versions, and reproduction steps. The detailed
+log instructions below still apply. Do not proceed to shadows/reflections until
+the new effects pass this check.
+
 ## Setup
 
-1. Copy `dist/BlohoShaders-baseline.zip` into the **active instance's**
+1. Copy `dist/BlohoShaders-atmosphere-v0.2.zip` into the **active instance's**
    `shaderpacks` directory, then select it in the shader menu.
 2. Use the default resource pack first. Record Minecraft, Iris + Sodium or
    OptiFine versions, GPU, and operating system. Test the loader you normally use;
@@ -35,7 +75,7 @@
   particles, rain, and snow. They must remain visible rather than becoming solid
   quads or disappearing entirely.
 - **Sky:** day sky, sunrise/sunset geometry, sun, moon, stars, and vanilla clouds.
-  Enable the corresponding game settings. No custom sky or volumetric clouds.
+  Enable the corresponding game settings. Compare procedural and vanilla clouds.
 - **Lines:** block selection outline and fishing line. This specifically tests
   the loader's handling of modern line geometry.
 - **Dimensions:** visit Overworld, Nether, and End; repeat terrain, entity, hand,
@@ -44,9 +84,9 @@
   the pack off/on, change render distance, save/rejoin, and change dimensions.
   There should be no black frame that persists or previous-frame trails.
 
-Fog parity with vanilla is outside this baseline: distant terrain and underwater
-visibility can differ. Do not treat absent custom shadows, fog, water reflections,
-or atmosphere as a failure of the geometry milestone.
+Fog now follows the engine fog inputs with an additional adjustable haze; its
+transition is intentionally softer than vanilla's linear ramp. Custom shadows
+and water reflections remain outside this milestone.
 
 ## If anything fails, send back
 

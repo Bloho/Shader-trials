@@ -1,4 +1,7 @@
 #include "/lib/geometry_interface.glsl"
+#if BLOHO_FOG == 1 && defined BLOHO_FOGGED
+#include "/lib/fog.glsl"
+#endif
 
 #ifdef BLOHO_TEXTURED
 uniform sampler2D gtexture;
@@ -11,6 +14,10 @@ uniform vec4 entityColor;
 #endif
 
 void main() {
+#if BLOHO_CLOUDS == 1 && BLOHO_DIMENSION == 0 && defined BLOHO_VANILLA_CLOUDS
+    // Replaced by the procedural layer in deferred, only when enabled.
+    discard;
+#endif
     vec4 surface = vertexTint;
 #ifdef BLOHO_TEXTURED
     surface *= texture2D(gtexture, surfaceUV);
@@ -24,7 +31,11 @@ void main() {
 #endif
     // With legacy gl_FragData, Iris/OptiFine applies the current alpha test.
     // Do not replace the input alpha with opaque alpha or a fixed threshold.
-    gl_FragData[0] = vec4(surface.rgb * illumination, surface.a);
+    vec3 sceneColor = surface.rgb * illumination;
+#if BLOHO_FOG == 1 && defined BLOHO_FOGGED
+    sceneColor = blohoFog(sceneColor, fogViewPosition);
+#endif
+    gl_FragData[0] = vec4(sceneColor, surface.a);
 
 #ifdef BLOHO_SURFACE
     // Metadata is never alpha blended. This is a single visible surface,

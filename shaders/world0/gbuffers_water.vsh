@@ -6,4 +6,5 @@
 #define BLOHO_SURFACE
 #define BLOHO_TERRAIN
 #define BLOHO_FAMILY 5.0
+#define BLOHO_FOGGED
 #include "/program/gbuffer/geometry.vsh"

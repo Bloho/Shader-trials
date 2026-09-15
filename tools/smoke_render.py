@@ -5,6 +5,9 @@ Emulates documented loader MRT routing, alpha testing, and ping-pong manually.
 Minecraft draw dispatch and Iris shader rewriting still need in-game testing.
 """
 import ctypes as C
+import math
+import sys
+from pathlib import Path
 from validate import Driver, preprocess, SHADERS
 
 
@@ -31,6 +34,10 @@ def main():
         ('glUseProgram', None, [U]),
         ('glGetUniformLocation', I, [U, C.c_char_p]),
         ('glUniform1i', None, [I, I]),
+        ('glUniform1f', None, [I, F]),
+        ('glUniform3f', None, [I, F, F, F]),
+        ('glUniformMatrix4fv', None, [I, I, U, C.POINTER(F)]),
+        ('glTexSubImage2D', None, [U, I, I, I, I, I, U, U, C.c_void_p]),
         ('glEnable', None, [U]),
         ('glDisable', None, [U]),
         ('glDisableIndexedEXT', None, [U, U]),
@@ -48,16 +55,33 @@ def main():
         driver.bind(name, result, *args)
 
     programs = {}
-    def use(name):
-        if name not in programs:
-            programs[name] = driver.program(preprocess(SHADERS / (name + '.vsh')),
-                                            preprocess(SHADERS / (name + '.fsh')))
-        program = programs[name]
+    def use(name, effects=None):
+        options = dict(BLOHO_BLOOM=0, BLOHO_FOG=0, BLOHO_CLOUDS=0)
+        options.update(effects or {})
+        key = (name, tuple(sorted(options.items())))
+        if key not in programs:
+            programs[key] = driver.program(preprocess(SHADERS / (name + '.vsh'), options),
+                                            preprocess(SHADERS / (name + '.fsh'), options))
+        program = programs[key]
         gl.glUseProgram(program)
-        for uniform, unit in [('gtexture', 0), ('lightmap', 1), ('colortex0', 0)]:
+        for uniform, unit in [('gtexture', 0), ('lightmap', 1), ('colortex0', 0),
+                              ('colortex4', 2), ('colortex5', 3), ('depthtex0', 4)]:
             loc = gl.glGetUniformLocation(program, uniform.encode())
             if loc >= 0:
                 gl.glUniform1i(loc, unit)
+        return program
+
+    def uniform(program, name, *values):
+        location = gl.glGetUniformLocation(program, name.encode())
+        if len(values) == 3:
+            gl.glUniform3f(location, *values)
+        elif isinstance(values[0], int):
+            gl.glUniform1i(location, values[0])
+        else:
+            gl.glUniform1f(location, values[0])
+
+    def matrix(program, name, values):
+        gl.glUniformMatrix4fv(gl.glGetUniformLocation(program, name.encode()), 1, 0, (F * 16)(*values))
 
     def texture(fmt, width=4, pixel=None):
         result = U()
@@ -102,10 +126,10 @@ def main():
             gl.glVertex3f(x*2-1, y*2-1, 0)
         gl.glEnd()
 
-    def pixel(index=0):
+    def pixel(index=0, x=2, y=2):
         gl.glReadBuffer(0x8CE0 + index)
         result = (F * 4)()
-        gl.glReadPixels(2, 2, 1, 1, 0x1908, 0x1406, result)
+        gl.glReadPixels(x, y, 1, 1, 0x1908, 0x1406, result)
         return list(result)
 
     def check(actual, expected, label, tolerance=0.009):
@@ -177,6 +201,147 @@ def main():
         bind(1, light)
         draw()
         check(pixel(), [0.4, 0.1, 0.2, 0.5], 'weather texture and lightmap stay visible')
+
+        # Fog must affect scene RGB without affecting alpha or the raw metadata.
+        attach(targets)
+        program = use('gbuffers_terrain', {'BLOHO_FOG': 1})
+        uniform(program, 'fogMode', 9729)
+        uniform(program, 'fogStart', 0.0)
+        uniform(program, 'fogEnd', 0.2)
+        uniform(program, 'fogColor', 0.1, 0.3, 0.6)
+        draw()
+        check(pixel(), [0.1, 0.3, 0.6, 0.5], 'linear fog reaches engine fog color without changing alpha')
+        check(pixel(1), [0.8, 0.4, 0.2, 0.5], 'fog leaves surface metadata unchanged')
+        uniform(program, 'fogMode', 2048)
+        uniform(program, 'fogDensity', 2.0)
+        draw()
+        visibility = math.exp(-2.0 * math.sqrt(0.25**2 + 0.25**2))
+        expected = [f + (c-f)*visibility for c,f in zip([0.4, 0.1, 0.2], [0.1, 0.3, 0.6])] + [0.5]
+        check(pixel(), expected, 'exponential fog uses per-fragment distance')
+        uniform(program, 'fogMode', 2049)
+        draw()
+        visibility = math.exp(-0.5)
+        expected = [f + (c-f)*visibility for c,f in zip([0.4, 0.1, 0.2], [0.1, 0.3, 0.6])] + [0.5]
+        check(pixel(), expected, 'exponential-squared fog')
+        attach([presented])
+        program = use('gbuffers_spidereyes', {'BLOHO_FOG': 1})
+        uniform(program, 'fogMode', 9729)
+        uniform(program, 'fogStart', 0.0)
+        uniform(program, 'fogEnd', 0.2)
+        uniform(program, 'fogColor', 0.1, 0.3, 0.6)
+        draw()
+        check(pixel(), [0, 0, 0, 0.5], 'additive eyes fade to black rather than add fog color')
+
+        # Bloom test: a small bright square in a black 32x32 input, half-res blur.
+        bind(0, 0)
+        scene = texture(0x8058, 32)
+        zero = (F * (32*32*4))()
+        gl.glTexSubImage2D(0x0DE1, 0, 0, 0, 32, 32, 0x1908, 0x1406, zero)
+        bright = (F * 64)(*([1, 0.9, 0.7, 0.4] * 16))
+        gl.glTexSubImage2D(0x0DE1, 0, 14, 14, 4, 4, 0x1908, 0x1406, bright)
+        bloomA, bloomB = texture(0x881A, 16), texture(0x881A, 16)
+        for name, target, inputUnit, inputTex in [('composite1', bloomA, 0, scene),
+                                                  ('composite2', bloomB, 2, bloomA),
+                                                  ('composite3', bloomA, 3, bloomB)]:
+            attach([target])
+            gl.glViewport(0, 0, 16, 16)
+            bind(inputUnit, inputTex)
+            program = use(name, {'BLOHO_BLOOM': 1})
+            uniform(program, 'viewWidth', 32.0)
+            uniform(program, 'viewHeight', 32.0)
+            draw()
+        bloomNear = pixel(x=5, y=7)
+        assert bloomNear[0] > 0.001, bloomNear
+        check(pixel(x=7, y=5), bloomNear, 'bloom spreads symmetrically in both axes', 0.015)
+        assert pixel(x=8, y=8)[0] < 1.0, 'Bloom kernel must not amplify a unit impulse'
+        print('PASS: bloom spreads energy away from small highlights')
+        attach([presented])
+        gl.glViewport(0, 0, 4, 4)
+        bind(0, source)
+        bind(2, bloomA)
+        use('final', {'BLOHO_BLOOM': 1})
+        draw()
+        finalPixel = pixel()
+        assert finalPixel[0] >= 0.8 and finalPixel[0] <= 1.0, finalPixel
+        check(finalPixel[3:], [0.5], 'bloom resolve preserves scene alpha')
+        # Uniform low-valued input must not produce a bloom veil.
+        attach([bloomA])
+        gl.glViewport(0, 0, 16, 16)
+        bind(0, light)
+        # Light's blue is 1: use an explicitly dim neutral input instead.
+        dim = texture(0x8058, 1, (0.2, 0.2, 0.2, 1))
+        bind(0, dim)
+        program = use('composite1', {'BLOHO_BLOOM': 1})
+        uniform(program, 'viewWidth', 32.0)
+        uniform(program, 'viewHeight', 32.0)
+        draw()
+        check(pixel(), [0, 0, 0, 1], 'dim scenes produce no bloom')
+
+        # Cloud tests use a controlled camera looking up at the two cloud sheets.
+        attach([presented])
+        gl.glViewport(0, 0, 4, 4)
+        bind(4, 0)
+        skyDepth = texture(0x8058, 1, (1, 1, 1, 1))
+        nearDepth = texture(0x8058, 1, (0.8, 0.8, 0.8, 1))
+        bind(0, dim)
+        bind(4, skyDepth)
+        program = use('deferred', {'BLOHO_CLOUDS': 1, 'CLOUD_COVERAGE': 0.7})
+        identity = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+        # Rotate view +Z to world +Y, without a singular matrix.
+        up = [1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1]
+        matrix(program, 'gbufferProjectionInverse', identity)
+        matrix(program, 'gbufferModelViewInverse', up)
+        uniform(program, 'sunPosition', 0.0, 0.0, 100.0)
+        uniform(program, 'skyColor', 0.2, 0.4, 0.7)
+        uniform(program, 'fogColor', 0.4, 0.5, 0.6)
+        # Scan several camera positions: cloud holes are intentional.
+        cloudSeen = False
+        for position in range(8):
+            uniform(program, 'cameraPosition', float(position * 80), 64.0, 0.0)
+            draw()
+            if pixel()[0] > 0.21:
+                cloudSeen = True
+                break
+        assert cloudSeen, 'Procedural clouds never become visible'
+        print('PASS: procedural clouds are visible against sky')
+        bind(4, nearDepth)
+        draw()
+        check(pixel(), [0.2, 0.2, 0.2, 1], 'near geometry occludes procedural clouds')
+        bind(4, skyDepth)
+        uniform(program, 'isEyeInWater', 1)
+        draw()
+        check(pixel(), [0.2, 0.2, 0.2, 1], 'clouds bypass fluid views')
+        use('world-1/deferred', {'BLOHO_CLOUDS': 1})
+        draw()
+        check(pixel(), [0.2, 0.2, 0.2, 1], 'Nether bypasses procedural clouds')
+        use('world1/deferred', {'BLOHO_CLOUDS': 1})
+        draw()
+        check(pixel(), [0.2, 0.2, 0.2, 1], 'End bypasses procedural clouds')
+        if '--preview' in sys.argv:
+            bind(0, 0)
+            previewTarget = texture(0x8058, 512)
+            backdrop = texture(0x8058, 1, (0.33, 0.55, 0.81, 1))
+            attach([previewTarget])
+            gl.glViewport(0, 0, 512, 512)
+            bind(0, backdrop)
+            bind(4, skyDepth)
+            program = use('deferred', {'BLOHO_CLOUDS': 1})
+            matrix(program, 'gbufferProjectionInverse', identity)
+            s, c = 0.55, math.sqrt(1.0 - 0.55**2)
+            matrix(program, 'gbufferModelViewInverse', [1,0,0,0, 0,c,-s,0, 0,s,c,0, 0,0,0,1])
+            uniform(program, 'sunPosition', 0.0, 0.0, 100.0)
+            uniform(program, 'skyColor', 0.33, 0.55, 0.81)
+            uniform(program, 'fogColor', 0.6, 0.7, 0.81)
+            uniform(program, 'cameraPosition', 0.0, 64.0, 0.0)
+            draw()
+            data = (C.c_ubyte * (512 * 512 * 3))()
+            gl.glReadPixels(0, 0, 512, 512, 0x1907, 0x1401, data)
+            assert gl.glGetError() == 0, 'Preview OpenGL error'
+            output = Path(__file__).resolve().parents[1] / 'build/clouds-preview.ppm'
+            output.parent.mkdir(exist_ok=True)
+            rows = [bytes(data[y*512*3:(y+1)*512*3]) for y in reversed(range(512))]
+            output.write_bytes(b'P6\n512 512\n255\n' + b''.join(rows))
+            print('Synthetic cloud preview (not Minecraft):', output)
         print('All offscreen checks passed. Minecraft validation is still required.')
     finally:
         for program in programs.values():

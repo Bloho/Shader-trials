@@ -72,3 +72,29 @@ against primary documentation/source:
 
 These sources inform the loader interface, not a claim of tested compatibility
 with every Minecraft or Iris/OptiFine version.
+
+## v0.2 pre-implementation subsystem audit
+
+Before each effect implementation, the supplied reference was inspected again
+for the relevant interfaces:
+
+- **Bloom:** post bloom vertex/fragment entry points and composite10–14 routing
+  expose scene color, temporary targets, and resolution uniforms. Bloho instead
+  uses a new three-pass, half-resolution triangular blur with targets 4/5. The
+  reference's bloom kernels, tile layout, reconstruction, and artistic constants
+  were not used.
+- **Fog:** reference composite interfaces expose depth, inverse matrices,
+  camera/fluid state, and weather. Bloho uses a simpler per-surface fog path with
+  engine fog uniforms, preserving translucent alpha and avoiding one opaque-depth
+  fog value being applied to foreground glass. Engine fog enum values and inputs
+  were cross-checked against the primary rendering-uniform documentation.
+- **Clouds:** reference deferred/prepare interfaces establish depth, world camera
+  coordinates, projection inverses, time, sky color, and external noise resources.
+  Bloho uses no external noise data or copied cloud implementation: two original
+  procedural layers are intersected with the reconstructed view ray in deferred.
+- **Resolution:** the primary rendering-properties documentation confirms relative
+  floating-point buffer sizes and the requirement that differently sized outputs
+  not share one draw. Bloom writes only one half-resolution target per pass.
+
+Only engine connection patterns were taken from the reference. The new art
+direction comes from the user's requested balance between vanilla and cinematic.

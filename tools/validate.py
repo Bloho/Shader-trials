@@ -10,6 +10,7 @@ import ctypes as C
 import re
 import subprocess
 import sys
+import itertools
 from generate import SHADERS, PROGRAMS, WORLDS, generated_files
 
 
@@ -27,8 +28,12 @@ def expand(path, stack=()):
     return re.sub(r'^\s*#include\s+"([^"]+)"\s*$', replace, source, flags=re.M)
 
 
-def preprocess(path):
+def preprocess(path, overrides=None):
     source = expand(path)
+    for name, value in (overrides or {}).items():
+        assert re.fullmatch(r'[A-Z][A-Z0-9_]*', name), name
+        source = re.sub(rf'^(#define\s+{name})\s+[^\n]+',
+                        lambda match: match.group(1) + ' ' + str(value), source, flags=re.M)
     assert source.startswith('#version 120\n'), path
     assert source.count('#version') == 1, path
     # Only the C-style preprocessor runs; GLSL itself is compiled by the driver.
@@ -127,6 +132,7 @@ class Driver:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--driver', action='store_true')
+    parser.add_argument('--matrix', action='store_true', help='Compile every combination of the three effect toggles')
     args = parser.parse_args()
     for path, text in generated_files():
         assert path.read_text() == text, f'Stale generated file: {path}'
@@ -136,34 +142,39 @@ def main():
     assert actual == expected, f'Unexpected entry points: {actual ^ expected}'
     driver = Driver() if args.driver else None
     count = 0
+    variants = [None]
+    if args.matrix:
+        variants = [dict(zip(('BLOHO_BLOOM', 'BLOHO_FOG', 'BLOHO_CLOUDS'), bits))
+                    for bits in itertools.product((0, 1), repeat=3)]
     try:
-        for vp in sorted(p for p in expected if p.suffix == '.vsh'):
-            fp = vp.with_suffix('.fsh')
-            vertex, fragment = preprocess(vp), preprocess(fp)
-            assert declarations(vertex, 'varying') == declarations(fragment, 'varying'), vp
-            vu, fu = declarations(vertex, 'uniform'), declarations(fragment, 'uniform')
-            for name in vu.keys() & fu.keys():
-                assert vu[name] == fu[name], (vp, name)
-            outputs = {int(i) for i in re.findall(r'gl_FragData\[(\d+)\]\s*=', fragment)}
-            if vp.stem == 'final':
-                assert not outputs and 'gl_FragColor =' in fragment, fp
-            else:
-                targets = re.findall(r'/\* DRAWBUFFERS:(\d+) \*/', fragment)
-                assert len(targets) == 1 and outputs == set(range(len(targets[0]))), fp
-                assert set(targets[0]) <= set('0123'), fp
-            if vp.stem.startswith('gbuffers_'):
-                assert not any(n.startswith('colortex') for n in fu), 'Gbuffer feedback loop'
-            if driver:
-                try:
-                    program = driver.program(vertex, fragment)
-                    driver.gl.glDeleteProgram(program)
-                except Exception as error:
-                    raise AssertionError(f'{vp.relative_to(SHADERS)}: {error}') from error
-            count += 1
+        for variant in variants:
+          for vp in sorted(p for p in expected if p.suffix == '.vsh'):
+              fp = vp.with_suffix('.fsh')
+              vertex, fragment = preprocess(vp, variant), preprocess(fp, variant)
+              assert declarations(vertex, 'varying') == declarations(fragment, 'varying'), vp
+              vu, fu = declarations(vertex, 'uniform'), declarations(fragment, 'uniform')
+              for name in vu.keys() & fu.keys():
+                  assert vu[name] == fu[name], (vp, name)
+              outputs = {int(i) for i in re.findall(r'gl_FragData\[(\d+)\]\s*=', fragment)}
+              if vp.stem == 'final':
+                  assert not outputs and 'gl_FragColor =' in fragment, fp
+              else:
+                  targets = re.findall(r'/\* DRAWBUFFERS:(\d+) \*/', fragment)
+                  assert len(targets) == 1 and outputs == set(range(len(targets[0]))), fp
+                  assert set(targets[0]) <= set('012345'), fp
+              if vp.stem.startswith('gbuffers_'):
+                  assert not any(n.startswith('colortex') for n in fu), 'Gbuffer feedback loop'
+              if driver:
+                  try:
+                      program = driver.program(vertex, fragment)
+                      driver.gl.glDeleteProgram(program)
+                  except Exception as error:
+                      raise AssertionError(f'{vp.relative_to(SHADERS)} {variant}: {error}') from error
+              count += 1
     finally:
         if driver:
             driver.close()
-    print(f'PASS: {count} program pairs; includes, varyings, uniforms, outputs, world entry points')
+    print(f'PASS: {count} program variants; includes, varyings, uniforms, outputs, world entry points')
     print('PASS: driver compilation/linking' if driver else 'Driver compilation not requested')
 
 

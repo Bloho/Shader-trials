@@ -1,6 +1,10 @@
 #ifndef BLOHO_GEOMETRY_INTERFACE
 #define BLOHO_GEOMETRY_INTERFACE
+#include "/settings.glsl"
 varying vec4 vertexTint;
+#if BLOHO_FOG == 1 && defined BLOHO_FOGGED
+varying vec3 fogViewPosition;
+#endif
 #ifdef BLOHO_TEXTURED
 varying vec2 surfaceUV;
 #endif

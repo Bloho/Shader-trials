@@ -1,4 +1,48 @@
-# Milestone 1 architecture
+# BlohoShaders architecture — v0.2
+
+## Atmosphere milestone additions
+
+The user confirmed the original baseline in-game. The geometry transform and
+texture/lightmap/alpha contract remains intact. The new effects are:
+
+- `lib/fog.glsl`: per-fragment view-space fog before scene blending. Engine fog
+  mode, shape, start/end, density, and color are honored, with adjustable distance
+  haze. Only scene RGB changes; metadata and alpha do not. Glints/eyes attenuate
+  toward black to avoid adding fog color; hand and breaking overlays keep their
+  original treatment.
+- `lib/clouds.glsl`: original noise-defined sheets at the chosen world height and
+  28 blocks above. Deferred reconstructs the viewing ray using depthtex0 and the
+  inverse camera matrices, clips intersections against opaque scene depth, and
+  composites the farther sheet first. Runs only for Overworld/root with the
+  option enabled and camera outside fluids. Vanilla cloud fragments are discarded
+  only when their procedural replacement is enabled. Neither layer writes depth.
+- `composite1`: thresholds highlights and downsamples scene color into colortex4.
+- `composite2`: horizontal normalized triangular blur, colortex4 → colortex5.
+- `composite3`: vertical blur, colortex5 → colortex4.
+- `final`: blends restrained bloom into scene RGB, preserving alpha.
+
+colortex4 and colortex5 are RGBA16F, half the viewport width/height (one quarter
+the pixels), and are never gbuffer outputs. They are fully written each frame,
+with regular engine ping-pong swaps. No metadata buffer is reused. There are now
+25 programs per dimension/root set, or **100 vertex/fragment pairs**. When bloom
+is off, its passes write black and final bypasses it; the small pass/allocation
+overhead remains. Disabling all three effects restores the baseline color path.
+
+`settings.glsl`, generated shader-option screens, and Baseline/Balanced presets
+control the features. These are presentation presets, not hardware quality tiers.
+The settings are independently compilable in all eight on/off combinations.
+
+### Current limits
+
+Clouds approximate soft layers rather than a volumetric medium. No cloud shadows,
+temporal reconstruction, atmospheric scattering, or per-pixel volumetric lighting
+are involved. Transparent content drawn before deferred without useful depth may
+interact with cloud ordering; it needs in-game testing. Cloud motion uses the
+engine frame timer, which can reset after long sessions. Bloom is display-space
+highlight bloom, not physically based HDR lighting or an emissive-material mask.
+
+The sections below describe the inherited baseline contract; screen-pass changes
+above supersede the original identity-only deferred/final behavior.
 
 ## Structure
 
@@ -7,10 +51,13 @@ shaders/
   lib/geometry_interface.glsl    shared vertex/fragment contract
   lib/targets.glsl               buffer formats and clear policy
   program/gbuffer/geometry.*     one geometry implementation with input flags
-  program/deferred/baseline.fsh  identity pass before later geometry
+  program/deferred/baseline.fsh  scene/cloud pass before later geometry
   program/composite/baseline.fsh identity pass after geometry
   program/fullscreen.vsh         shared screen quad
-  program/final.fsh              presentation
+  program/composite/bloom_*.fsh  highlight extraction and separable blur
+  program/final.fsh              bloom resolve and presentation
+  lib/fog.glsl, lib/clouds.glsl   original atmosphere components
+  settings.glsl                  effect toggles and controls
   gbuffers_*.vsh/.fsh            root fallback entry points
   deferred.*, composite.*, final.*
   world0/, world-1/, world1/     thin dimension entry points
@@ -19,8 +66,8 @@ shaders/
 tools/generate.py               authoritative entry point/flag manifest
 ```
 
-There are 19 geometry programs and three screen programs per entry-point set,
-with four sets (88 pairs). The repetition is loader-facing wrappers, not 88
+There are 19 geometry programs and six screen programs per entry-point set,
+with four sets (100 pairs). The repetition is loader-facing wrappers, not 100
 implementations. Root entries cover fallback dimensions; each named vanilla
 dimension has a complete set and defines its dimension for future use.
 
@@ -29,15 +76,17 @@ dimension has a complete set and defines its dimension for future use.
 1. The engine clears scene color to its fog background and clears metadata to zero.
 2. Early geometry writes lightmapped color into `colortex0`. Terrain, entities,
    block entities, and the opaque hand also write surface metadata.
-3. `deferred` samples current `colortex0` into its alternate texture. The loader
+3. `deferred` samples current `colortex0`, adds enabled Overworld clouds, and writes
+   its alternate texture. The loader
    flips that target; metadata is neither written nor flipped by this pass.
 4. Later geometry, including water/translucent terrain, translucent hand, and
    weather, renders onto the resulting scene. Water and translucent hand update
    surface metadata; weather and other overlays write scene color only.
 5. `composite` copies the completed scene through another automatic target swap.
-6. `final` samples current `colortex0` into the screen framebuffer.
+6. `composite1`–`composite3` extract and blur highlights using targets 4 and 5.
+7. `final` resolves scene color and enabled bloom into the screen framebuffer.
 
-No gbuffer samples a render target it writes. No framebuffer has a custom size.
+No gbuffer samples a render target it writes. Only bloom buffers use a custom size.
 No history, mipmaps, shadow samplers, or persistent buffers are allocated.
 
 ## Buffer contract
@@ -61,7 +110,7 @@ shading. Before implementing custom lighting, revise that input contract so the
 same shading is not applied twice; it is not currently raw PBR base color.
 
 `depthtex0`, `depthtex1`, and `depthtex2` are engine-managed depth resources. No
-custom depth encoding is introduced. They are not sampled by the baseline.
+custom depth encoding is introduced. The new cloud pass samples depthtex0.
 
 Metadata is **one record per pixel for the last metadata-writing fragment that
 passes depth/alpha testing**. It is never alpha blended. It does not encode
@@ -96,11 +145,11 @@ The compatibility line path relies on the loader's transform patching (verified
 in Iris's `VanillaTransformer`); there is no copied line-widening implementation.
 OptiFine line rendering is an explicit in-game acceptance check.
 
-## Extension boundary
+## Next extension boundary
 
-After acceptance, directional lighting belongs in deferred, translucent lighting
+After atmosphere acceptance, directional lighting belongs in deferred, translucent lighting
 in the geometry path, and final presentation stays independent. Shared libraries
-can later host shadows, atmospheres, clouds, water, materials, and animation.
+can extend the current fog/clouds and later host shadows, water, materials, and animation.
 Dimension flags are ready for Overworld/Nether/End distinctions. Profiles should
 be introduced only when actual quality/cost settings exist. No empty effect
 subsystems or misleading quality profiles are shipped now.
